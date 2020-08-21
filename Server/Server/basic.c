@@ -41,9 +41,23 @@ int main(int argc, char* argv[])
 		hClntSock = accept(hServSock, (SOCKADDR*)& clntAddr, &szClntAddr);//클라이언트 연결 수락
 		if (hClntSock == INVALID_SOCKET)
 			ErrorHandling("accept() error");
-		while (strLen = recv(hClntSock, message, sizeof(message) - 1, 0)) {
-			send(hClntSock, message, strLen, 0);
-		}
+
+		recv(hClntSock, message, sizeof(message) - 1, 0);
+			int cnt = message[0];
+			printf("cnt:%d\n", cnt);
+
+			int *tmp=(int *)calloc(cnt,sizeof(int));
+
+			for (int i = 0; i < cnt; i++) {
+				tmp[i] = message[i + 1];
+				printf("operations %d :%d\n", i+1,tmp[i]);
+			}
+				
+			printf("operator %c :\n", message[cnt+1]);
+
+			int result = calculate(cnt, tmp, message[cnt + 1]);
+			send(hClntSock, (char *)&result, sizeof(result), 0);
+	
 		closesocket(hClntSock);
 	}
 	
@@ -51,7 +65,24 @@ int main(int argc, char* argv[])
 	WSACleanup();
 	return 0;
 }
+int calculate(int opnum, int opnds[], char op)
+{
+	int result = opnds[0], i;
 
+	switch (op)
+	{
+	case '+':
+		for (i = 1; i < opnum; i++) result += opnds[i];
+		break;
+	case '-':
+		for (i = 1; i < opnum; i++) result -= opnds[i];
+		break;
+	case '*':
+		for (i = 1; i < opnum; i++) result *= opnds[i];
+		break;
+	}
+	return result;
+}
 void ErrorHandling(char* message)
 {
 	fputs(message, stderr);
