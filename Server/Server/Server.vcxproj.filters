@@ -18,5 +18,8 @@
     <ClCompile Include="basic.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="udpEcho.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
