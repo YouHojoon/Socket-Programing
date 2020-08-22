@@ -126,6 +126,7 @@
   <ItemGroup>
     <ClCompile Include="basic.c" />
     <ClCompile Include="calculator.c" />
+    <ClCompile Include="file.c" />
     <ClCompile Include="udpEcho.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
