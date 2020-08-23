@@ -49,9 +49,7 @@ int main(int argc, char * argv[]){
         int len;
         for(int i=0; i<10; i++){
             len=read(fds[0],msgBuff,BUFF_SIZE);
-            printf("%s\n",msgBuff);
             fwrite(msgBuff,1,len,fp);
-            fputs(msgBuff,fp);
         }
         fclose(fp);
         return 0;
