@@ -126,6 +126,7 @@
   <ItemGroup>
     <ClCompile Include="basic.c" />
     <ClCompile Include="file.c" />
+    <ClCompile Include="overlappedRecv.c" />
     <ClCompile Include="udpEcho.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
