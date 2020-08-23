@@ -6,12 +6,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/epoll.h>
-
+#include <errno.h>
+#include <fcntl.h>
 void ErrorHandling(char *message)
 {
     fputs(message, stderr);
     fputs("\n", stderr);
     exit(1);
+}
+void setNonBlockingMod(int socket)
+{
+    int flag = fcntl(socket, F_GETFL, 0);
+    fcntl(socket, F_SETFL, flag | O_NONBLOCK);
 }
 int main(int argc, char *argv[])
 {
@@ -19,7 +25,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in srvAddr, clntAddr;
     socklen_t szAddr;
     int epfd, readCnt;
-    char buff[100];
+    char buff[4];
 
     if (argc != 2)
     {
@@ -41,11 +47,12 @@ int main(int argc, char *argv[])
     epfd = epoll_create(50);
     struct epoll_event *epoll_events = malloc(sizeof(struct epoll_event) * 50);
     struct epoll_event event;
+    setNonBlockingMod(srvSock); //엣지 트리거를 위해 NON-BLOCKING IO로 전환
     event.events = EPOLLIN;
     event.data.fd = srvSock;
-
     epoll_ctl(epfd, EPOLL_CTL_ADD, srvSock, &event);
     int epoll_cnt;
+
     while (1)
     {
         epoll_cnt = epoll_wait(epfd, epoll_events, 50, -1);
@@ -60,23 +67,33 @@ int main(int argc, char *argv[])
             {
                 szAddr = sizeof(clntAddr);
                 clntSock = accept(srvSock, (struct sockaddr *)&clntAddr, &szAddr);
+                setNonBlockingMod(clntSock);
                 event.data.fd = clntSock;
+                event.events = EPOLLIN | EPOLLET;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, clntSock, &event);
                 printf("connected client: %d\n", clntSock);
             }
             else
             {
-                readCnt = read(epoll_events[i].data.fd, buff, sizeof(buff));
-                if (readCnt == 0)
+                while (1)
                 {
-                    epoll_ctl(epfd, EPOLL_CTL_DEL, epoll_events[i].data.fd, NULL);
-                    close(epoll_events[i].data.fd);
-                    printf("closed client: %d \n", epoll_events[i].data.fd);
-                }
-                else
-                {
-                    buff[readCnt] = 0;
-                    write(epoll_events[i].data.fd, buff, strlen(buff));
+                    readCnt = read(epoll_events[i].data.fd, buff, sizeof(buff));
+                    if (readCnt == 0)
+                    {
+                        epoll_ctl(epfd, EPOLL_CTL_DEL, epoll_events[i].data.fd, NULL);
+                        close(epoll_events[i].data.fd);
+                        printf("closed client: %d \n", epoll_events[i].data.fd);
+                    }
+                    else if (readCnt < 0)
+                    {
+                        if (errno == EAGAIN)//EAGAIN이라는 BUFF가 빈 신호를 받을때까지 반복문을 돌면서 데이터 전송
+                            break;
+                    }
+                    else
+                    {
+                        buff[readCnt] = 0;
+                        write(epoll_events[i].data.fd, buff, strlen(buff));
+                    }
                 }
             }
         }
